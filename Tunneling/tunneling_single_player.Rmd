@@ -1,0 +1,142 @@
+---
+title: "tunneling_single_player"
+author: "Max Wassarman"
+date: "2024-07-03"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(baseballr)
+library(patchwork)
+library(ggrepel)
+```
+
+```{r}
+#data <- read.csv("/Users/maxwassarman/baseball_work/python/baseball_repo/Stuff/Statcast_2020_to_2023.csv")
+```
+
+```{r}
+player_data <- data |>
+  filter(player_name == "Wainwright, Adam") |>
+  filter(substr(game_date, 1, 4) == "2023")
+```
+
+```{r, fig.width=15, fig.height=15}
+player_year_means <- player_data |>
+  filter(pitch_type != "PO") |>
+  group_by(pitch_type) |>
+  summarize(
+    mean_vx0 = mean(vx0, na.rm = TRUE),
+    mean_vy0 = mean(vy0, na.rm = TRUE),
+    mean_vz0 = mean(vz0, na.rm = TRUE),
+    mean_ax = mean(ax, na.rm = TRUE),
+    mean_ay = mean(ay, na.rm = TRUE),
+    mean_az = mean(az, na.rm = TRUE)
+  )
+
+horizontal_movement <- function(vx0, ax, t) {
+  (vx0 * t + 0.5 * ax * t^2) * 12
+}
+
+vertical_movement <- function(vz0, az, t) {
+  (vz0 * t + 0.5 * az * t^2) * 12
+}
+
+# Function to calculate time to plate
+time_to_plate <- function(vy0, ay, y, y0 = 50) {
+  # y0 is the initial y position (50 feet from home plate)
+  # y is the position of home plate (1.417 feet is the front of home plate)
+  vy = -sqrt(vy0^2 + 2*ay*(y-y0))
+  t = (vy - vy0) / ay
+  return(t)
+}
+
+# Function to calculate initial velocity in mph
+initial_velocity_mph <- function(vx0, vy0, vz0) {
+  v0 = sqrt(vx0^2 + vy0^2 + vz0^2)
+  return(v0 * 3600 / 5280) # Convert ft/s to mph
+}
+
+# Function to create plot for the entire year
+plot_pitch_movement_year <- function(data) {
+  # Calculate time to plate and initial velocity for each pitch type using mean values
+  data <- data |>
+    mutate(
+      time_to_plate = time_to_plate(mean_vy0, mean_ay, y = 1.417),
+      v0_mph = initial_velocity_mph(mean_vx0, mean_vy0, mean_vz0)
+    )
+  
+  # Remove any rows with NA or infinite time_to_plate
+  data <- data |>
+    filter(!is.na(time_to_plate) & is.finite(time_to_plate))
+  
+  # Create sequence of time points
+  max_time <- max(data$time_to_plate, na.rm = TRUE)
+  time_seq <- seq(0, max_time, by = 0.01)
+  
+  # Create plot data
+  plot_data <- data |>
+    crossing(time = time_seq) |>
+    mutate(
+      horizontal_movement = horizontal_movement(mean_vx0, mean_ax, time),
+      vertical_movement = vertical_movement(mean_vz0, mean_az, time)
+    ) |>
+    group_by(pitch_type) |>
+    filter(time <= time_to_plate) |>
+    ungroup()
+  
+  last_points <- plot_data |>
+    group_by(pitch_type) |>
+    slice_max(time, n = 1) |>
+    ungroup()
+  
+  # Create the horizontal plot
+  p1 <- ggplot(plot_data, aes(x = time, y = horizontal_movement, color = pitch_type)) +
+    geom_line() +
+    labs(title = "Horizontal Movement",
+         x = "Time (seconds)",
+         y = "Horizontal Movement (inches)",
+         color = "Pitch Type") +
+    theme_minimal() +
+    scale_x_continuous(breaks = seq(0, max_time, by = 0.02)) +
+    scale_y_continuous(expand = c(0.1, 0)) +
+    geom_text_repel(
+      aes(label = paste0(pitch_type, " (", round(time, 3), "s, ", round(v0_mph, 1), " mph)")),
+      data = last_points,
+      size = 5
+    ) +
+    theme(legend.position = "none")
+  
+  # Create the vertical plot
+  p2 <- ggplot(plot_data, aes(x = time, y = vertical_movement, color = pitch_type)) +
+    geom_line() +
+    labs(title = "Vertical Movement",
+         x = "Time (seconds)",
+         y = "Vertical Movement (inches)",
+         color = "Pitch Type") +
+    theme_minimal() +
+    scale_x_continuous(breaks = seq(0, max_time, by = 0.02)) +
+    scale_y_continuous(expand = c(0.1, 0)) +
+    geom_text_repel(
+      aes(label = paste0(pitch_type, " (", round(time, 3), "s, ", round(v0_mph, 1), " mph)")),
+      data = last_points,
+      size = 5
+    ) +
+    theme(legend.position = "none") 
+  
+  # Combine the plots side by side
+  combined_plot <- p1 + p2 +
+    plot_layout(ncol = 1) +
+    plot_annotation(title = "Pitch Movement Over Time (Full Year 2023)")
+  
+  return(combined_plot)
+}
+
+# Generate and display the plot
+plot_pitch_movement_year(player_year_means)
+```
+
+
+
+

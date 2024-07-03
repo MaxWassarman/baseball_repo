@@ -1,0 +1,403 @@
+#Used 0.5 as the measurements are taken at 50 feet and a 100mph pitch takes around 400 milliseconds and a 70 mph pitch takes around 600 milliseconds so I want roughly 500 milliseconds of time to account for both
+
+#Line at 0.225. Estimation from this aricle https://tinyurl.com/4e6cntps for when the hitter has to make a decision
+
+```{r}
+library(tidyverse)
+library(baseballr)
+library(patchwork)
+library(ggrepel)
+
+#[Pitch vx0] * [Time] + ( 0.5 * [Pitch ax] * SQUARE([Time]) )
+```
+
+```{r}
+#data <- read.csv("/Users/maxwassarman/baseball_work/python/baseball_repo/Stuff/Statcast_2020_to_2023.csv")
+
+```
+
+```{r}
+player_data <- data |>
+  filter(player_name == "Pepiot, Ryan") |>
+  filter(substr(game_date, 1, 4) == "2023")
+```
+
+
+```{r, fig.width=15, fig.height=15}
+game_means <- player_data |>
+  group_by(game_date, pitch_type) |>
+  summarize(
+    mean_vx0 = mean(vx0, na.rm = TRUE),
+    mean_vy0 = mean(vy0, na.rm = TRUE),
+    mean_vz0 = mean(vz0, na.rm = TRUE),
+    mean_ax = mean(ax, na.rm = TRUE),
+    mean_ay = mean(ay, na.rm = TRUE),
+    mean_az = mean(az, na.rm = TRUE)
+  )
+  
+
+horizontal_movement <- function(vx0, ax, t) {
+  (vx0 * t + 0.5 * ax * t^2) * 12
+}
+
+vertical_movement <- function(vz0, az, t) {
+  (vz0 * t + 0.5 * az * t^2) * 12
+}
+
+# Function to create plot for a specific date
+plot_pitch_movement <- function(data, selected_date) {
+  # Filter for the selected date
+  filtered_data <- data |>
+    filter(game_date == selected_date)
+  
+  # Create sequence of time points
+  time_seq <- seq(0, 0.50, by = 0.01)
+  
+  # Create plot data
+  plot_data <- filtered_data |>
+    crossing(time = time_seq) |>
+    mutate(
+      horizontal_movement = horizontal_movement(mean_vx0, mean_ax, time),
+      vertical_movement = vertical_movement(mean_vz0, mean_az, time)
+    )
+  
+  last_points <- plot_data |>
+    group_by(pitch_type) |>
+    slice_max(time, n = 1) |>
+    ungroup()
+  
+  # Create the horizontal plot
+  p1 <- ggplot(plot_data, aes(x = time, y = horizontal_movement, color = pitch_type)) +
+    geom_line() +
+    labs(title = "Horizontal Movement",
+         x = "Time (seconds)",
+         y = "Horizontal Movement",
+         color = "Pitch Type") +
+    theme_minimal() +
+    scale_x_continuous(breaks = seq(0, 0.5, by = 0.02)) +
+    scale_y_continuous(expand = c(0.1, 0)) +
+    geom_text_repel(
+      aes(label=pitch_type),
+      data = last_points
+    ) +
+    theme(legend.position = "none") +
+    geom_vline(xintercept = 0.225, linetype = "dashed", color = "gray50")
+
+  
+  # Create the vertical plot
+  p2 <- ggplot(plot_data, aes(x = time, y = vertical_movement, color = pitch_type)) +
+    geom_line() +
+    labs(title = "Vertical Movement",
+         x = "Time (seconds)",
+         y = "Vertical Movement",
+         color = "Pitch Type") +
+    theme_minimal() +
+    scale_x_continuous(breaks = seq(0, 0.5, by = 0.02)) +
+    scale_y_continuous(expand = c(0.1, 0)) +
+    geom_text_repel(
+      aes(label=pitch_type),
+      data = last_points
+    ) +
+    theme(legend.position = "none") +
+    geom_vline(xintercept = 0.225, linetype = "dashed", color = "gray50")
+  
+  # Combine the plots side by side
+  combined_plot <- p1 + p2 +
+    plot_layout(ncol = 1) +
+    plot_annotation(title = paste("Pitch Movement Over Time :", selected_date))
+  
+  return(combined_plot)
+}
+
+# Usage
+selected_date <- as.Date("2022-10-08")
+plot_pitch_movement(game_means, selected_date)
+```
+
+```{r, fig.width=15, fig.height=15}
+player_year_means <- player_data |>
+  filter(pitch_type != "PO") |>
+  group_by(pitch_type) |>
+  summarize(
+    mean_vx0 = mean(vx0, na.rm = TRUE),
+    mean_vy0 = mean(vy0, na.rm = TRUE),
+    mean_vz0 = mean(vz0, na.rm = TRUE),
+    mean_ax = mean(ax, na.rm = TRUE),
+    mean_ay = mean(ay, na.rm = TRUE),
+    mean_az = mean(az, na.rm = TRUE)
+  )
+
+horizontal_movement <- function(vx0, ax, t) {
+  (vx0 * t + 0.5 * ax * t^2) * 12
+}
+
+vertical_movement <- function(vz0, az, t) {
+  (vz0 * t + 0.5 * az * t^2) * 12
+}
+
+# Function to create plot for the entire year
+plot_pitch_movement_year <- function(data) {
+  # Create sequence of time points
+  time_seq <- seq(0, 0.5, by = 0.01)
+  
+  # Create plot data
+  plot_data <- data |>
+    crossing(time = time_seq) |>
+    mutate(
+      horizontal_movement = horizontal_movement(mean_vx0, mean_ax, time),
+      vertical_movement = vertical_movement(mean_vz0, mean_az, time)
+    )
+  
+  last_points <- plot_data |>
+    group_by(pitch_type) |>
+    slice_max(time, n = 1) |>
+    ungroup()
+  
+  # Create the horizontal plot
+  p1 <- ggplot(plot_data, aes(x = time, y = horizontal_movement, color = pitch_type)) +
+    geom_line() +
+    labs(title = "Horizontal Movement",
+         x = "Time (seconds)",
+         y = "Horizontal Movement",
+         color = "Pitch Type") +
+    theme_minimal() +
+    scale_x_continuous(breaks = seq(0, 0.5, by = 0.02)) +
+    scale_y_continuous(expand = c(0.1, 0)) +
+    geom_text_repel(
+      aes(label=pitch_type),
+      data = last_points
+    ) +
+    theme(legend.position = "none") +
+    geom_vline(xintercept = 0.225, linetype = "dashed", color = "gray50")
+
+  
+  # Create the vertical plot
+  p2 <- ggplot(plot_data, aes(x = time, y = vertical_movement, color = pitch_type)) +
+    geom_line() +
+    labs(title = "Vertical Movement",
+         x = "Time (seconds)",
+         y = "Vertical Movement",
+         color = "Pitch Type") +
+    theme_minimal() +
+    scale_x_continuous(breaks = seq(0, 0.5, by = 0.02)) +
+    scale_y_continuous(expand = c(0.1, 0)) +
+    geom_text_repel(
+      aes(label=pitch_type),
+      data = last_points
+    ) +
+    theme(legend.position = "none") +
+    geom_vline(xintercept = 0.225, linetype = "dashed", color = "gray50")
+  
+  # Combine the plots side by side
+  combined_plot <- p1 + p2 +
+    plot_layout(ncol = 1) +
+    plot_annotation(title = "Pitch Movement Over Time (Full Year 2023)")
+  
+  return(combined_plot)
+}
+
+# Generate and display the plot
+plot_pitch_movement_year(player_year_means)
+```
+
+```{r}
+calculate_pitcher_movements <- function(data, player_name, year) {
+  # Function to calculate horizontal movement
+  horizontal_movement <- function(vx0, ax, t) {
+    (vx0 * t + 0.5 * ax * t^2) * 12
+  }
+  
+  # Function to calculate vertical movement
+  vertical_movement <- function(vz0, az, t) {
+    (vz0 * t + 0.5 * az * t^2) * 12
+  }
+  
+  # Filter data for the specific player and year
+  player_data <- data %>%
+    filter(player_name == !!player_name,
+           substr(game_date, 1, 4) == as.character(year))
+  
+  # Calculate yearly means for each pitch type
+  year_means <- player_data %>%
+    filter(pitch_type != "PO") %>%
+    group_by(pitch_type) %>%
+    summarize(
+      mean_vx0 = mean(vx0, na.rm = TRUE),
+      mean_vy0 = mean(vy0, na.rm = TRUE),
+      mean_vz0 = mean(vz0, na.rm = TRUE),
+      mean_ax = mean(ax, na.rm = TRUE),
+      mean_ay = mean(ay, na.rm = TRUE),
+      mean_az = mean(az, na.rm = TRUE)
+    )
+  
+  # Create sequence of time points
+  time_seq <- seq(0, 0.5, by = 0.01)
+  
+  # Calculate movements
+  movement_data <- year_means %>%
+    crossing(time = time_seq) %>%
+    mutate(
+      horizontal_movement = horizontal_movement(mean_vx0, mean_ax, time),
+      vertical_movement = vertical_movement(mean_vz0, mean_az, time)
+    )
+  
+  # Add player name and year to the data
+  movement_data$player_name <- player_name
+  movement_data$year <- year
+  
+  return(movement_data)
+}
+
+# Function to process all pitchers in the dataset
+process_all_pitchers <- function(data, year) {
+  # Get unique pitchers
+  pitchers <- unique(data$player_name)
+  
+  # Initialize an empty list to store results
+  all_pitcher_data <- list()
+  
+  # Process each pitcher
+  for (pitcher in pitchers) {
+    pitcher_data <- calculate_pitcher_movements(data, pitcher, year)
+    all_pitcher_data[[pitcher]] <- pitcher_data
+  }
+  
+  # Combine all pitcher data into a single dataframe
+  result <- do.call(rbind, all_pitcher_data)
+  
+  return(result)
+}
+
+# Usage:
+# Assuming 'data' is your full dataset
+year <- 2023
+all_pitcher_movements <- process_all_pitchers(data, year)
+```
+
+
+```{r}
+all_pitcher_movements <- drop_na(all_pitcher_movements)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+calculate_pitch_differences <- function(all_pitcher_movements) {
+  
+  differences <- all_pitcher_movements %>%
+    group_by(player_name, year) %>%
+    # Check if FF or SI is available
+    mutate(baseline_pitch = case_when(
+      any(pitch_type == "FF") ~ "FF",
+      any(pitch_type == "SI") ~ "SI",
+      TRUE ~ NA_character_
+    )) %>%
+    # Filter out pitchers without FF or SI
+    filter(!is.na(baseline_pitch)) %>%
+    group_by(player_name, year, time) %>%
+    # Identify the baseline pitch (FF or SI)
+    mutate(
+      baseline_horizontal = horizontal_movement[pitch_type == baseline_pitch],
+      baseline_vertical = vertical_movement[pitch_type == baseline_pitch]
+    ) %>%
+    # Calculate differences from baseline pitch
+    mutate(
+      horizontal_diff = horizontal_movement - baseline_horizontal,
+      vertical_diff = vertical_movement - baseline_vertical
+    ) %>%
+    # Remove baseline pitch rows
+    filter(pitch_type != baseline_pitch) %>%
+    ungroup() %>%
+    # Calculate average differences before and after 0.225 seconds
+    group_by(player_name, year, pitch_type) %>%
+    summarise(
+      avg_horizontal_diff_before = mean(horizontal_diff[time <= 0.225], na.rm = TRUE),
+      avg_horizontal_diff_after = mean(horizontal_diff[time > 0.225], na.rm = TRUE),
+      avg_vertical_diff_before = mean(vertical_diff[time <= 0.225], na.rm = TRUE),
+      avg_vertical_diff_after = mean(vertical_diff[time > 0.225], na.rm = TRUE),
+      total_diff_before = sqrt(mean(horizontal_diff[time <= 0.225]^2 + vertical_diff[time <= 0.225]^2, na.rm = TRUE)),
+      total_diff_after = sqrt(mean(horizontal_diff[time > 0.225]^2 + vertical_diff[time > 0.225]^2, na.rm = TRUE)),
+      diff_ratio = total_diff_after / total_diff_before,
+      baseline_pitch = first(baseline_pitch),
+      .groups = "drop"
+    )
+  
+  return(differences)
+}
+
+# Calculate differences
+pitch_differences <- calculate_pitch_differences(all_pitcher_movements)
+
+# Find pitchers with best pitch combos
+best_combos <- pitch_differences %>%
+  group_by(player_name, year) %>%
+  summarise(
+    avg_diff_ratio = mean(diff_ratio, na.rm = TRUE),
+    min_diff_before = min(total_diff_before, na.rm = TRUE),
+    max_diff_after = max(total_diff_after, na.rm = TRUE),
+    baseline_pitch = first(baseline_pitch),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(avg_diff_ratio))
+
+# View results
+print(head(best_combos, 30))
+```
+
+```{r}
+best_combos |>
+  arrange((min_diff_before))
+```
+
+```{r}
+#https://baseball.physics.illinois.edu/KaganPitchfx.pdf
+sz_top = 3.836
+sz_bot = 1.79
+pfx_x = 8.68
+pfx_z = 9.55
+px = -0.012
+pz = 2.743
+x0 = 1.664 
+y0 = 50.0
+z0 = 6.597
+vx0 = -6.791 #ft/s
+vy0 = -123.055
+vz0 = -5.721
+ax = 13.233
+ay = 25.802
+az = -17.540
+break_y = 25.2
+break_angle = -32.1
+break_length =5.9
+y=1.417 # front of home plate
+
+v0 = sqrt((vx0^2)+(vy0^2)+(vz0^2)) #123.375 ft/s or 84.1 mph
+
+vy = -sqrt((vy0^2+(2*ay*(y-y0)))) #-112.408 ft/s
+
+t = ((vy-vy0)/ay) # 0.4127 s
+
+vx = vx0+ax*t #-1.330 ft/s
+
+vz = vz0+az*t #-12.960 ft/s
+
+v = sqrt((vx^2)+(vy^2)+(vz^2)) #113.160 ft/s pr 77.2 mph
+
+#Now finding at y=40
+y=40
+
+t40 = ((-vy0 - sqrt((vy0^2)-2*ay*(y0-y)))/ay) #0.08197 s
+
+x40 = x0+vx0*t40+(1/2)*ax*(t40^2) #1.152 ft
+
+vx40 = vx0+ax*t40 #-5.706 ft/s
+
+z40 = z0+vz0*t40+(1/2)*az*(t40^2) #6.069 ft
+
+vz40 = vz0+az*t40 #-7.159 ft/s
+
+th = t-t40 #0.3307 s (time to get to home from 40ft)
+
+```
+
