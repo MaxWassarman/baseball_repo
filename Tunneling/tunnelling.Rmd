@@ -213,14 +213,14 @@ calculate_pitcher_movements <- function(data, player_name, year) {
   }
   
   # Filter data for the specific player and year
-  player_data <- data %>%
+  player_data <- data |>
     filter(player_name == !!player_name,
            substr(game_date, 1, 4) == as.character(year))
   
   # Calculate yearly means for each pitch type
-  year_means <- player_data %>%
-    filter(pitch_type != "PO") %>%
-    group_by(pitch_type) %>%
+  year_means <- player_data |>
+    filter(pitch_type != "PO") |>
+    group_by(pitch_type) |>
     summarize(
       mean_vx0 = mean(vx0, na.rm = TRUE),
       mean_vy0 = mean(vy0, na.rm = TRUE),
@@ -234,8 +234,8 @@ calculate_pitcher_movements <- function(data, player_name, year) {
   time_seq <- seq(0, 0.5, by = 0.01)
   
   # Calculate movements
-  movement_data <- year_means %>%
-    crossing(time = time_seq) %>%
+  movement_data <- year_means |>
+    crossing(time = time_seq) |>
     mutate(
       horizontal_movement = horizontal_movement(mean_vx0, mean_ax, time),
       vertical_movement = vertical_movement(mean_vz0, mean_az, time)
@@ -285,32 +285,32 @@ library(tidyr)
 
 calculate_pitch_differences <- function(all_pitcher_movements) {
   
-  differences <- all_pitcher_movements %>%
-    group_by(player_name, year) %>%
+  differences <- all_pitcher_movements |>
+    group_by(player_name, year) |>
     # Check if FF or SI is available
     mutate(baseline_pitch = case_when(
       any(pitch_type == "FF") ~ "FF",
       any(pitch_type == "SI") ~ "SI",
       TRUE ~ NA_character_
-    )) %>%
+    )) |>
     # Filter out pitchers without FF or SI
-    filter(!is.na(baseline_pitch)) %>%
-    group_by(player_name, year, time) %>%
+    filter(!is.na(baseline_pitch)) |>
+    group_by(player_name, year, time) |>
     # Identify the baseline pitch (FF or SI)
     mutate(
       baseline_horizontal = horizontal_movement[pitch_type == baseline_pitch],
       baseline_vertical = vertical_movement[pitch_type == baseline_pitch]
-    ) %>%
+    ) |>
     # Calculate differences from baseline pitch
     mutate(
       horizontal_diff = horizontal_movement - baseline_horizontal,
       vertical_diff = vertical_movement - baseline_vertical
-    ) %>%
+    ) |>
     # Remove baseline pitch rows
-    filter(pitch_type != baseline_pitch) %>%
-    ungroup() %>%
+    filter(pitch_type != baseline_pitch) |>
+    ungroup() |>
     # Calculate average differences before and after 0.225 seconds
-    group_by(player_name, year, pitch_type) %>%
+    group_by(player_name, year, pitch_type) |>
     summarise(
       avg_horizontal_diff_before = mean(horizontal_diff[time <= 0.225], na.rm = TRUE),
       avg_horizontal_diff_after = mean(horizontal_diff[time > 0.225], na.rm = TRUE),
@@ -330,15 +330,15 @@ calculate_pitch_differences <- function(all_pitcher_movements) {
 pitch_differences <- calculate_pitch_differences(all_pitcher_movements)
 
 # Find pitchers with best pitch combos
-best_combos <- pitch_differences %>%
-  group_by(player_name, year) %>%
+best_combos <- pitch_differences |>
+  group_by(player_name, year) |>
   summarise(
     avg_diff_ratio = mean(diff_ratio, na.rm = TRUE),
     min_diff_before = min(total_diff_before, na.rm = TRUE),
     max_diff_after = max(total_diff_after, na.rm = TRUE),
     baseline_pitch = first(baseline_pitch),
     .groups = "drop"
-  ) %>%
+  ) |>
   arrange(desc(avg_diff_ratio))
 
 # View results
