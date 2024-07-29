@@ -23,13 +23,13 @@ get_expected_runs_matrix_2 <- function(base_cd, outs, runs_rest_of_inn) {
     filter(!is.na(base_cd), !is.na(outs), !is.na(runs_rest_of_inn))
   
   # Calculate ERV
-  ER <- ER %>%
-    group_by(base_cd, outs) %>%
+  ER <- ER |>
+    group_by(base_cd, outs) |>
     summarize(
       ERV = mean(runs_rest_of_inn, na.rm = TRUE),
       count = n(),
       .groups = 'drop'
-    ) %>%
+    ) |>
     mutate(
       ERV = round(ERV, 3),
       state = paste(base_cd, outs)
