@@ -2,7 +2,7 @@ library(tidyverse)
 library(gt)
 
 calculate_pitching_stats <- function(stats) {
-  d3_pitching |>
+  stats |>
     mutate(
       AB = BF - BB - HB - SHA - SFA,
       lgERA = (sum(ER)/sum(IP)) * 9,
@@ -12,7 +12,7 @@ calculate_pitching_stats <- function(stats) {
       lgHBP = sum(HB),
       lgK = sum(SO),
       lgIP = sum(IP),
-      cFIP = lgERA - (((13*lgHR)+(3*(lgBB+lgHBP))-(2*lgK))/lgIP),
+      cFIP = lgERA - (((13*lgHR)+(3*(lgBB+lgHBP))-(2*lgK))/lgIP), #4.8
       FIP = ((13*`HR-A`)+(3*(BB+HB))-(2*SO))/IP + cFIP,
       `lgHR/FB%` = (lgHR/lgFO),
       xFIP = ((13*(FO * `lgHR/FB%`))+(3*(BB+HB))-(2*SO))/IP + cFIP, 
