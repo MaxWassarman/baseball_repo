@@ -39,7 +39,7 @@ get_d3_schedules <- function(team_names_csv, year = 2024) {
   }
   
   # Remove duplicate games (each game appears twice, once for each team)
-  unique_schedules <- all_schedules %>% distinct(contest_id, .keep_all = TRUE)
+  unique_schedules <- all_schedules |> distinct(contest_id, .keep_all = TRUE)
   return(unique_schedules)
 }
 
@@ -59,7 +59,7 @@ get_d3_pbp_data <- function(schedules) {
       if (is.data.frame(pbp_data) && nrow(pbp_data) > 0) {
         if (all(c("away_text", "home_text") %in% names(pbp_data))) {
           # Filter out rows where both away_text and home_text are just scores
-          pbp_data <- pbp_data %>% 
+          pbp_data <- pbp_data |> 
             filter(!(grepl("^\\d+-\\d+$", away_text) & grepl("^\\d+-\\d+$", home_text)))
           
           if (nrow(pbp_data) > 0) {
@@ -98,7 +98,7 @@ parse_ncaa_pbp_data <- function(pbp_data) {
   for (i in seq_along(unique_games)) {
     game_id <- unique_games[i]
     # Filter data for the current game
-    game_data <- pbp_data %>% filter(game_id == !!game_id)
+    game_data <- pbp_data |> filter(game_id == !!game_id)
     
     tryCatch({
       # Parse the play-by-play data for the current game

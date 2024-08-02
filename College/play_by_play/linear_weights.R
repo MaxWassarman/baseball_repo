@@ -36,27 +36,27 @@ calculate_college_linear_weights <- function(pbp_data, re24_matrix) {
       row$event_cd == 23 ~ "home_run"
     )
     
-    event_data <- event_data %>%
+    event_data <- event_data |>
       add_row(event = event, re24 = re24, count = 1)
   }
   
-  linear_weights <- event_data %>%
-    group_by(event) %>%
+  linear_weights <- event_data |>
+    group_by(event) |>
     summarise(
       count = sum(count),
       total_re24 = sum(re24),
       linear_weights = round(total_re24 / count, 3)
-    ) %>%
+    ) |>
     mutate(
       linear_weights_above_average = linear_weights - weighted.mean(linear_weights, count),
       linear_weights_above_outs = linear_weights - linear_weights[event == "out"]
-    ) %>%
+    ) |>
     arrange(desc(linear_weights)) 
   
   return(linear_weights)
 }
 
-
+#THIS ONE WORKS (TAKES A LONG TIME)
 calculate_college_linear_weights <- function(pbp_data, re24_matrix) {
   # Function to get RE value from the matrix
   get_re <- function(base_cd, outs) {
@@ -131,6 +131,15 @@ calculate_normalized_linear_weights <- function(linear_weights, stats) {
     stop("linear_weights must contain columns: events, linear_weights_above_outs, and count")
   }
   
+  # Check if "wOBA scale" row already exists
+  woba_scale_exists <- "wOBA scale" %in% linear_weights$events
+  
+  # If "wOBA scale" exists, remove it temporarily
+  if (woba_scale_exists) {
+    woba_scale_row <- linear_weights[linear_weights$events == "wOBA scale", ]
+    linear_weights <- linear_weights[linear_weights$events != "wOBA scale", ]
+  }
+  
   # Calculate total value produced by all events
   total_value <- sum(linear_weights$linear_weights_above_outs * linear_weights$count)
   
@@ -140,18 +149,28 @@ calculate_normalized_linear_weights <- function(linear_weights, stats) {
   # Calculate the denominator
   denominator <- total_value / total_pa
   
-  #denominator <- total_value / 538062 #This seems better think my PA calc is wrong so estimating based on (AB,BB,HBP,SF,SH)
-  
-  league_obp <- (sum(stats$H) + sum(stats$BB) + sum(stats$HBP)) / (sum(stats$AB) + sum(stats$BB) + sum(stats$HBP) + sum(stats$SF))
+  league_obp <- (sum(stats$H) + sum(stats$BB) + sum(stats$HBP)) / 
+    (sum(stats$AB) + sum(stats$BB) + sum(stats$HBP) + sum(stats$SF) + sum(stats$SH))
   
   woba_scale <- league_obp / denominator
   
   # Normalize the weights
-  normalized_weights <- linear_weights %>%
+  normalized_weights <- linear_weights |>
     mutate(
       normalized_weight = linear_weights_above_outs * woba_scale,
       normalized_weight = round(normalized_weight, 3)
     )
   
-  return(normalized_weights)
+  # Create or update the wOBA scale row
+  woba_scale_row <- data.frame(
+    events = "wOBA scale",
+    linear_weights_above_outs = NA,
+    count = NA,
+    normalized_weight = round(woba_scale, 3)
+  )
+  
+  # Combine the normalized weights with the wOBA scale row
+  result <- bind_rows(normalized_weights, woba_scale_row)
+  
+  return(result)
 }

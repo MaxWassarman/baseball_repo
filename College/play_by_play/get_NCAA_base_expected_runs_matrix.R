@@ -19,7 +19,7 @@ get_expected_runs_matrix=function(base_cd, outs, runs_rest_of_inn){
 #UPDATED old did not work
 get_expected_runs_matrix_2 <- function(base_cd, outs, runs_rest_of_inn) {
   # Create a data frame and remove any NA values
-  ER <- tibble(base_cd, outs, runs_rest_of_inn) %>%
+  ER <- tibble(base_cd, outs, runs_rest_of_inn) |>
     filter(!is.na(base_cd), !is.na(outs), !is.na(runs_rest_of_inn))
   
   # Calculate ERV
