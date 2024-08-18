@@ -41,7 +41,8 @@ def spin_axis_to_minutes(spin_axis):
     return hours * 60 + minutes
 
 def scale_and_score(pred):
-    return np.abs((pred * 100) - 100)
+    scaled_pred = pred * 1000
+    return np.abs(scaled_pred - 100)
 
 st.title('Pitch Analysis App')
 
@@ -50,20 +51,20 @@ pitch_type = st.selectbox('Select Pitch Type', ['Fastball', 'Breaking Ball', 'Of
 col1, col2 = st.columns(2)
 
 with col1:
-    release_speed = st.number_input('Velocity', min_value=0.0, max_value=200.0, value=90.0)
-    release_pos_x = st.number_input('Release Side', min_value=-10.0, max_value=10.0, value=0.0)
-    release_pos_z = st.number_input('Release Height', min_value=0.0, max_value=10.0, value=6.0)
+    release_speed = st.number_input('Velocity', min_value=0.0, max_value=200.0, value=95.0)
+    release_pos_x = st.number_input('Release Side (RHP is negative)', min_value=-10.0, max_value=10.0, value=-1.0)
+    release_pos_z = st.number_input('Release Height', min_value=0.0, max_value=10.0, value=5.0)
 
 with col2:
-    pfx_x = st.number_input('Horizontal Movement (pfx_x)', min_value=-50.0, max_value=50.0, value=0.0)
-    pfx_z = st.number_input('Vertical Movement (pfx_z)', min_value=-50.0, max_value=50.0, value=0.0)
-    spin_axis = st.text_input('Spin Axis (HH:MM format)', value='12:00')
+    pfx_x = st.number_input('Horizontal Movement (RHP glove side is negative)', min_value=-50.0, max_value=50.0, value=5.0)
+    pfx_z = st.number_input('Vertical Movement (pfx_z)', min_value=-50.0, max_value=50.0, value=15.0)
+    spin_axis = st.text_input('Spin Axis (HH:MM format)', value='1:15')
 
 if pitch_type != 'Fastball':
     st.subheader('Fastball Data (for comparison)')
     fastball_velo = st.number_input('Fastball Velocity', min_value=0.0, max_value=200.0, value=95.0)
-    fastball_horiz = st.number_input('Fastball Horizontal Movement', min_value=-50.0, max_value=50.0, value=0.0)
-    fastball_vert = st.number_input('Fastball Vertical Movement', min_value=-50.0, max_value=50.0, value=10.0)
+    fastball_horiz = st.number_input('Fastball Horizontal Movement', min_value=-50.0, max_value=50.0, value=5.0)
+    fastball_vert = st.number_input('Fastball Vertical Movement', min_value=-50.0, max_value=50.0, value=15.0)
 
 if st.button('Analyze Pitch'):
     # Create a DataFrame with the input data
@@ -107,5 +108,5 @@ st.sidebar.markdown("""
 3. If you selected a non-fastball pitch, enter the fastball data for comparison.
 4. Click the 'Analyze Pitch' button to see the results.
 
-The app will provide a prediction and a score for the pitch, along with an interpretation of the results.
+The app will provide a predicted score for the pitch.
 """)
