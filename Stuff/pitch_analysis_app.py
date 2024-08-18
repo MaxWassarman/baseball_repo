@@ -5,9 +5,9 @@ import joblib
 import math
 
 # Load models
-fastball_model = joblib.load('cl_fastball_model.joblib')
-breakingball_model = joblib.load('cl_breakingball_model.joblib')
-offspeed_model = joblib.load('cl_offspeed_model.joblib')
+fastball_model = joblib.load("https://github.com/MaxWassarman/baseball_repo/blob/main/Stuff/cl_fastball_model.joblib")
+breakingball_model = joblib.load("https://github.com/MaxWassarman/baseball_repo/blob/main/Stuff/cl_breakingball_model.joblib")
+offspeed_model = joblib.load("https://github.com/MaxWassarman/baseball_repo/blob/main/Stuff/cl_offspeed_model.joblib")
 
 # Define features
 features = ['release_speed', 'release_pos_x', 'release_pos_z', 'pfx_x', 'pfx_z', 'spin_axis', 'velocity_diff', 'horizontal_movement_diff', 'vertical_movement_diff']
