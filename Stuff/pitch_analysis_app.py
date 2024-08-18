@@ -50,9 +50,9 @@ pitch_type = st.selectbox('Select Pitch Type', ['Fastball', 'Breaking Ball', 'Of
 col1, col2 = st.columns(2)
 
 with col1:
-    release_speed = st.number_input('Release Speed', min_value=0.0, max_value=200.0, value=90.0)
-    release_pos_x = st.number_input('Release Position X', min_value=-10.0, max_value=10.0, value=0.0)
-    release_pos_z = st.number_input('Release Position Z', min_value=0.0, max_value=10.0, value=6.0)
+    release_speed = st.number_input('Velocity', min_value=0.0, max_value=200.0, value=90.0)
+    release_pos_x = st.number_input('Release Side', min_value=-10.0, max_value=10.0, value=0.0)
+    release_pos_z = st.number_input('Release Height', min_value=0.0, max_value=10.0, value=6.0)
 
 with col2:
     pfx_x = st.number_input('Horizontal Movement (pfx_x)', min_value=-50.0, max_value=50.0, value=0.0)
