@@ -85,8 +85,8 @@ if st.button('Analyze Pitch'):
     else:
         # Calculate additional features
         data['velocity_diff'] = fastball_velo - release_speed
-        data['horizontal_movement_diff'] = pfx_x - fastball_horiz
-        data['vertical_movement_diff'] = pfx_z - fastball_vert
+        data['horizontal_movement_diff'] = fastball_horiz - pfx_x
+        data['vertical_movement_diff'] = fastball_vert - pfx_z
 
         if pitch_type == 'Breaking Ball':
             prediction = breakingball_model.predict(data[features])
