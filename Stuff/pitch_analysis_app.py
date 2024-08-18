@@ -3,11 +3,19 @@ import pandas as pd
 import numpy as np
 import joblib
 import math
+import requests
+from io import BytesIO
+
+@st.cache_resource
+def load_model(url):
+    response = requests.get(url)
+    return joblib.load(BytesIO(response.content))
 
 # Load models
-fastball_model = joblib.load("https://github.com/MaxWassarman/baseball_repo/blob/main/Stuff/cl_fastball_model.joblib")
-breakingball_model = joblib.load("https://github.com/MaxWassarman/baseball_repo/blob/main/Stuff/cl_breakingball_model.joblib")
-offspeed_model = joblib.load("https://github.com/MaxWassarman/baseball_repo/blob/main/Stuff/cl_offspeed_model.joblib")
+fastball_model = load_model("https://github.com/MaxWassarman/baseball_repo/raw/main/Stuff/cl_fastball_model.joblib")
+breakingball_model = load_model("https://github.com/MaxWassarman/baseball_repo/raw/main/Stuff/cl_breakingball_model.joblib")
+offspeed_model = load_model("https://github.com/MaxWassarman/baseball_repo/raw/main/Stuff/cl_offspeed_model.joblib")
+
 
 # Define features
 features = ['release_speed', 'release_pos_x', 'release_pos_z', 'pfx_x', 'pfx_z', 'spin_axis', 'velocity_diff', 'horizontal_movement_diff', 'vertical_movement_diff']
