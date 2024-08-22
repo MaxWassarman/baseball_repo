@@ -20,3 +20,6 @@ test <- pbp_testing(game_id = 4527024)
 #From NCAA_base_pbp_parser.R (Dave Miller Github (slight updates))
 test_parsed <- ncaa_parse(test)
 ```
+
+Credit to Dave Miller whose code I adapted for this project.
+https://github.com/davmiller/NCAA-baseball
