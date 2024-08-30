@@ -41,8 +41,12 @@ def spin_axis_to_minutes(spin_axis):
     return hours * 60 + minutes
 
 def scale_and_score(pred):
-    scaled_pred = pred * 1000
-    return np.abs(scaled_pred - 100)
+    pred = pred - 0.6387678565009078
+    pred = abs(pred)
+    pred = pred - 0.6389372299788966
+    pred = pred / 0.009087110471852212
+    pred = pred * 10 + 100
+    return pred
 
 st.title('Pitch Analysis App')
 
