@@ -109,11 +109,11 @@ if uploaded_file is not None:
     # Get Plot
     subprocess.run(["Rscript", "plot_script.R", "temp.csv", date_option, "temp_plot.png"])
     
-    
+    # Display the plot
     image = Image.open("temp_plot.png")
     st.image(image, use_column_width=True)
 
-    
+    # Clean up temporary files
     os.remove("temp.csv")
     os.remove("temp_plot.png")
     os.remove("unique_dates.csv")
